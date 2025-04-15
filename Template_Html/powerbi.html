@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Power BI Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.20.1/dist/powerbi.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        #embedContainer {
+            height: 600px;
+            width: 100%;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="text-center mt-5">Power BI Embedded Report</h1>
+    <div id="embedContainer"></div>
+    <div class="text-center mt-4">
+        <a href="/" class="btn btn-primary">Back to Home</a>
+    </div>
+
+    <script>
+        let loadedResolve, reportLoaded = new Promise((res, rej) => { loadedResolve = res; });
+        let renderedResolve, reportRendered = new Promise((res, rej) => { renderedResolve = res; });
+
+        const EMBED_ACCESS_TOKEN = "{{ access_token }}";
+        const EMBED_URL = "{{ embed_url }}";
+        const REPORT_ID = "{{ report_id }}";
+        const TOKEN_TYPE = "{{ token_type }}";
+
+        models = window['powerbi-client'].models;
+
+        function embedPowerBIReport() {
+            let config = {
+                type: 'report',
+                tokenType: TOKEN_TYPE === '0' ? models.TokenType.Aad : models.TokenType.Embed,
+                accessToken: EMBED_ACCESS_TOKEN,
+                embedUrl: EMBED_URL,
+                id: REPORT_ID,
+                permissions: models.Permissions.All,
+                settings: {
+                    panes: {
+                        filters: { visible: true },
+                        pageNavigation: { visible: true }
+                    },
+                    bars: {
+                        statusBar: { visible: true }
+                    }
+                }
+            };
+
+            let embedContainer = $('#embedContainer')[0];
+            report = powerbi.embed(embedContainer, config);
+
+            report.off("loaded");
+            report.on("loaded", function () {
+                loadedResolve();
+                report.off("loaded");
+            });
+
+            report.off("error");
+            report.on("error", function (event) {
+                console.error(event.detail);
+            });
+
+            report.off("rendered");
+            report.on("rendered", function () {
+                renderedResolve();
+                report.off("rendered");
+            });
+        }
+
+        embedPowerBIReport();
+
+        reportLoaded.then(() => {
+            console.log("Report loaded");
+        });
+
+        reportRendered.then(() => {
+            console.log("Report rendered");
+        });
+    </script>
+</body>
+</html>
